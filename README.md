@@ -1,46 +1,59 @@
-# Smart Power Bank 🔋
+# 🔋 Nexus Power | Smart Power Bank System
 
-A bare-metal firmware implementation for the **ESP32-C3** designed to control high-power sources with precision and efficiency.
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Framework](https://img.shields.io/badge/Framework-ESP--IDF-orange.svg)](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/index.html)
 
-## 🚀 Features
+**Nexus Power** is a professional-grade, bare-metal firmware for the **ESP32-C3** that transforms a standard battery pack into a smart, connected power station. Designed for precision, security, and efficiency.
 
-- **Bare-Metal Architecture**: Built on ESP-IDF for maximum performance and low-level hardware control.
-- **Dual Framework Support**: Compatible with both **ESP-IDF** and **Arduino** frameworks for flexible development and testing.
-- **Power Control Engine**: Encapsulated C++ logic for reliable GPIO switching.
-- **Low Latency**: Direct register manipulation (where applicable) and optimized FreeRTOS tasks.
+---
 
-## 🛠 Hardware Configuration
+## 🚀 Core Features
+
+- **Real-Time Telemetry**: Precision monitoring of Voltage, Current, and Power via INA219.
+- **Smart Control**: Low-latency power toggling via BLE (Bluetooth Low Energy).
+- **Persistent Memory**: Intelligent state recovery—remembers your ON/OFF status even after power loss (© 2026).
+- **Hardware Authenticity**: Cryptographic signature system to detect and block counterfeit hardware.
+- **Cloud-Free Dashboard**: A high-performance Web Bluetooth dashboard (HTTPS) for mobile and desktop.
+- **Device Registry**: Integrated serial number verification for brand protection.
+
+## 🛠 Hardware Interface (ESP32-C3)
 
 | Component | Pin | Description |
 |-----------|-----|-------------|
-| Control GPIO | `GPIO 2` | Digital output for power source switching |
-| MCU | ESP32-C3 | RISC-V Single-Core CPU |
+| **I2C SDA** | `GPIO 4` | Data line for INA219 Sensor |
+| **I2C SCL** | `GPIO 5` | Clock line for INA219 Sensor |
+| **Power Toggle**| `GPIO 10` | Output for Relay/MOSFET (Active Low) |
+| **Status LED** | Internal | BLE / System Status Indicators |
 
-## 📦 Project Structure
+## 💻 Software & Dashboard
 
-- `src/main.cpp`: Entry point handling the power cycle logic.
-- `src/PowerController.cpp`: Implementation of the `PowerController` class.
-- `include/PowerController.hpp`: Header file defining the power control interface.
-- `platformio.ini`: PlatformIO configuration for multiple environments.
+Access your power bank settings directly from your browser (Chrome/Edge/Bluefy):
+👉 **[Nexus Dashboard](https://deethunder.github.io/Smart-Power-bank/)**
 
-## 🚦 Getting Started
+## 🔐 Brand Protection & Registry
+
+To maintain a secure ecosystem, Nexus Power uses a Hardware Signature system.
+1. **Flash Firmware**: Note the unique Serial ID in the Serial Monitor.
+2. **Register**: Add the Serial to `docs/devices.json`.
+3. **Verify**: Connect via the Dashboard to see the **✅ VERIFIED GENUINE** badge.
+
+## 📦 Getting Started
 
 ### Prerequisites
-- [PlatformIO Core](https://platformio.org/install/cli) or VS Code with PlatformIO extension.
+- [PlatformIO IDE](https://platformio.org/)
+- ESP32-C3 DevKit (or custom Nexus hardware)
 
-### Installation
-1. Clone the repository.
-2. Open the project in PlatformIO.
-3. Select your preferred environment (`esp32-c3-arduino` or `esp32-c3-devkitm-1`).
-4. Build and upload.
+### Build & Flash
+```bash
+# Build and Upload
+pio run -t upload
 
-## 📅 Development Roadmap
+# Monitor Logs
+pio run -t monitor
+```
 
-- [x] Basic GPIO Power Toggling (5s Interval)
-- [x] Dual-Framework Compatibility
-- [ ] PWM-based Voltage Regulation
-- [ ] Battery Level Monitoring
-- [ ] Over-current Protection Logic
+## 📜 License
+Licensed under the **Apache License 2.0**. You are free to use, modify, and distribute this software for commercial purposes. See the [LICENSE](LICENSE) file for more details.
 
 ---
-*Developed with precision for the next generation of power management.*
+**Disclaimer**: This project involves high-power electrical components. Always use caution and proper insulation when building hardware.

@@ -1,6 +1,7 @@
 #include "NexusBLE.hpp"
 #include "esp_log.h"
 #include "esp_mac.h"
+#include "secrets.hpp"
 
 static const char* TAG = "NexusBLE";
 static NexusBLE* s_instance = nullptr;
@@ -47,8 +48,7 @@ void NexusBLE::setToggleCallback(ToggleCallback cb) {
     m_toggleCb = cb;
 }
 
-// Secret key for authenticity (only known to your firmware and software)
-#define NEXUS_SECRET_BYTE 0xAC 
+// Security logic uses NEXUS_SECRET_BYTE from secrets.hpp
 
 void NexusBLE::updatePowerData(float voltage, float current, float power, uint8_t batteryPct) {
     if (m_pServer->getConnectedCount() == 0) return;
