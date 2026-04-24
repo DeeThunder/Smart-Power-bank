@@ -6,7 +6,7 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 
-#define CONTROL_GPIO GPIO_NUM_2
+#define CONTROL_GPIO GPIO_NUM_10
 #define READ_INTERVAL_MS 1000
 
 // Battery Calibration (3S Li-ion)
@@ -14,7 +14,7 @@
 #define BATT_MIN_V 9.0f
 
 static PowerController powerCtrl(CONTROL_GPIO);
-static Ina219Sensor ina219(8, 9);
+static Ina219Sensor ina219(4, 5);
 static NexusBLE nexusBle;
 
 /**
@@ -35,6 +35,10 @@ void onBleToggle(bool on) {
 }
 
 extern "C" void app_main() {
+    // Immediate log to see if we reach app_main
+    printf("\n\n[SYSTEM] BOOT START...\n");
+    vTaskDelay(pdMS_TO_TICKS(2000));
+
     // 1. Initialize NVS (required for BLE)
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -43,13 +47,22 @@ extern "C" void app_main() {
     }
     ESP_ERROR_CHECK(ret);
 
-    // 2. Initialize Hardware
+    ESP_LOGI("MAIN", "Initializing Hardware...");
     powerCtrl.init();
+    
+    // --- Physical Hardware Test ---
+    ESP_LOGI("MAIN", "Testing Hardware Toggle (ON)...");
+    powerCtrl.setPower(true);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    ESP_LOGI("MAIN", "Testing Hardware Toggle (OFF)...");
+    powerCtrl.setPower(false);
+    // ------------------------------
+
     if (ina219.init() != ESP_OK) {
         ESP_LOGE("MAIN", "INA219 Init Failed!");
     }
 
-    // 3. Initialize BLE
+    ESP_LOGI("MAIN", "Initializing BLE...");
     nexusBle.init("Nexus Power");
     nexusBle.setToggleCallback(onBleToggle);
 
@@ -62,6 +75,7 @@ extern "C" void app_main() {
     printf(" DASHBOARD: https://deethunder.github.io/Smart-Power-bank/ \n");
     printf(" BATTERY:  12.6V System (3S Li-ion)       \n");
     printf("==========================================\n\n");
+    fflush(stdout);
 
     while (true) {
         float v = ina219.getBusVoltage_V();

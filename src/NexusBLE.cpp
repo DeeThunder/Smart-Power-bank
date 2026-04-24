@@ -30,7 +30,7 @@ void NexusBLE::init(const std::string& deviceName) {
 
     NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SVC_UUID);
-    // Use the basic start - this is most stable across all versions
+    pAdvertising->setName(m_deviceName.c_str());
     pAdvertising->start();
 
     ESP_LOGI(TAG, "BLE initialized as %s", m_deviceName.c_str());
@@ -66,6 +66,7 @@ void NexusBLE::ControlCallbacks::onWrite(NimBLECharacteristic* pCharacteristic, 
     std::string value = pCharacteristic->getValue();
     if (value.length() > 0) {
         bool on = (value[0] == 1);
+        ESP_LOGI("NexusBLE", "Toggle Command Received: %s", on ? "ON" : "OFF");
         if (s_instance->m_toggleCb) s_instance->m_toggleCb(on);
     }
 }
