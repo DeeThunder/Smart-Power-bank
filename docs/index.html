@@ -197,8 +197,14 @@
             document.getElementById('btnPower').disabled = !connected;
             document.getElementById('btnConnect').style.display = connected ? 'none' : 'block';
             document.getElementById('btnDisconnect').style.display = connected ? 'block' : 'none';
+            
             if(!connected) {
                 document.getElementById('serial-id').innerText = 'SN: --------';
+                document.getElementById('serial-id').style.color = 'var(--text-dim)';
+                document.getElementById('volts').innerText = '-- V';
+                document.getElementById('amps').innerText = '-- A';
+                document.getElementById('watts').innerText = '-- W';
+                document.getElementById('pct').innerHTML = '--<span class="pct-unit">%</span>';
             }
         }
 

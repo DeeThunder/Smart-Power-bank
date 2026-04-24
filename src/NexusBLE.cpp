@@ -30,8 +30,14 @@ void NexusBLE::init(const std::string& deviceName) {
     pService->start();
 
     NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
+    
+    // Set Name in advertising data
+    NimBLEAdvertisementData advData;
+    advData.setName(m_deviceName);
+    pAdvertising->setAdvertisementData(advData);
+    
+    // Add Service UUID to ensure filtering works
     pAdvertising->addServiceUUID(SVC_UUID);
-    pAdvertising->setName(m_deviceName.c_str());
     pAdvertising->start();
 
     ESP_LOGI(TAG, "BLE initialized as %s", m_deviceName.c_str());
