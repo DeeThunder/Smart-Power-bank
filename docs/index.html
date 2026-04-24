@@ -117,7 +117,10 @@
         async function connect() {
             try {
                 device = await navigator.bluetooth.requestDevice({
-                    filters: [{ name: 'Nexus Power' }],
+                    filters: [
+                        { name: 'Nexus Power' },
+                        { services: [SVC_UUID] }
+                    ],
                     optionalServices: [SVC_UUID]
                 });
 

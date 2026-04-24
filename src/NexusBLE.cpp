@@ -4,10 +4,10 @@
 static const char* TAG = "NexusBLE";
 static NexusBLE* s_instance = nullptr;
 
-// UUIDs
-#define SVC_UUID  "0000FF01-0000-1000-8000-00805F9B34FB"
-#define DATA_UUID "0000FF02-0000-1000-8000-00805F9B34FB"
-#define CTRL_UUID "0000FF03-0000-1000-8000-00805F9B34FB"
+// Lowercase UUIDs to match Web Bluetooth standards
+#define SVC_UUID  "0000ff01-0000-1000-8000-00805f9b34fb"
+#define DATA_UUID "0000ff02-0000-1000-8000-00805f9b34fb"
+#define CTRL_UUID "0000ff03-0000-1000-8000-00805f9b34fb"
 
 NexusBLE::NexusBLE() : m_deviceName("Nexus Power"), m_toggleCb(nullptr), m_pServer(nullptr) {
     s_instance = this;
@@ -26,10 +26,11 @@ void NexusBLE::init(const std::string& deviceName) {
     m_pCtrlChar = pService->createCharacteristic(CTRL_UUID, NIMBLE_PROPERTY::WRITE);
     m_pCtrlChar->setCallbacks(new ControlCallbacks());
 
-    // pService->start() is deprecated in newer NimBLE, it starts with the server.
+    pService->start();
 
     NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SVC_UUID);
+    // Use the basic start - this is most stable across all versions
     pAdvertising->start();
 
     ESP_LOGI(TAG, "BLE initialized as %s", m_deviceName.c_str());

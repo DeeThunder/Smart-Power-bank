@@ -59,7 +59,7 @@ extern "C" void app_main() {
     printf("==========================================\n");
     printf(" STATUS:   BLE Advertising Active         \n");
     printf(" DEVICE:   Nexus Power                    \n");
-    printf(" DASHBOARD: software/dashboard.html       \n");
+    printf(" DASHBOARD: https://deethunder.github.io/Smart-Power-bank/ \n");
     printf(" BATTERY:  12.6V System (3S Li-ion)       \n");
     printf("==========================================\n\n");
 
