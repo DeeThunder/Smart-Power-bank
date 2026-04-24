@@ -13,6 +13,7 @@
             --text: #f1f5f9;
             --text-dim: #94a3b8;
             --border: rgba(255,255,255,0.08);
+            --danger: #ef4444;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,6 +42,17 @@
         header { margin-bottom: 40px; }
         .eyebrow { font-size: 10px; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 5px; }
         .title { font-family: 'Bebas Neue', sans-serif; font-size: 48px; line-height: 1; letter-spacing: 1px; }
+        
+        .serial-badge {
+            font-family: 'DM Mono', monospace;
+            font-size: 9px;
+            background: rgba(255,255,255,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--text-dim);
+            margin-top: 5px;
+            display: inline-block;
+        }
 
         .battery-card {
             background: rgba(255,255,255,0.03);
@@ -56,7 +68,7 @@
 
         .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 30px; }
         .metric-item { background: rgba(255,255,255,0.02); padding: 15px 5px; border-radius: 12px; border: 1px solid var(--border); }
-        .m-val { font-family: 'DM Mono', monospace; font-size: 16px; display: block; margin-bottom: 2px; }
+        .m-val { font-family: 'DM Mono', monospace; font-size: 14px; display: block; margin-bottom: 2px; }
         .m-lbl { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
 
         .btn-toggle {
@@ -76,9 +88,25 @@
         }
 
         .btn-toggle.off { background: #1f262d; color: var(--text-dim); }
-        .btn-connect { margin-top: 20px; background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 12px; }
+        .btn-toggle:disabled { opacity: 0.3; cursor: not-allowed; }
 
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #ef4444; margin-right: 5px; }
+        .controls-row { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-secondary {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        .btn-connect { border-color: var(--accent); color: var(--accent); }
+
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--danger); margin-right: 5px; }
         .status-dot.online { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
     </style>
 </head>
@@ -88,8 +116,12 @@
         <header>
             <div class="eyebrow">Project Nexus</div>
             <div class="title">NEXUS POWER</div>
-            <div id="status-container" style="font-size: 11px; margin-top: 10px;">
-                <span class="status-dot" id="dot"></span> <span id="status-text" style="color: var(--text-dim)">DISCONNECTED</span>
+            <div id="status-container" style="font-size: 11px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span class="status-dot" id="dot"></span> 
+                    <span id="status-text" style="color: var(--text-dim)">OFFLINE</span>
+                </div>
+                <div id="serial-id" class="serial-badge">SN: --------</div>
             </div>
         </header>
 
@@ -103,7 +135,11 @@
         </div>
 
         <button class="btn-toggle off" id="btnPower" disabled>POWER OFF</button>
-        <button class="btn-connect" id="btnConnect">CONNECT TO DEVICE</button>
+        
+        <div class="controls-row">
+            <button class="btn-secondary btn-connect" id="btnConnect">Connect</button>
+            <button class="btn-secondary" id="btnDisconnect" style="display:none">Disconnect</button>
+        </div>
     </div>
 
     <script>
@@ -116,6 +152,7 @@
 
         async function connect() {
             try {
+                console.log("Requesting device...");
                 device = await navigator.bluetooth.requestDevice({
                     filters: [
                         { name: 'Nexus Power' },
@@ -124,14 +161,15 @@
                     optionalServices: [SVC_UUID]
                 });
 
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+
+                console.log("Connecting to GATT server...");
                 server = await device.gatt.connect();
                 service = await server.getPrimaryService(SVC_UUID);
                 charData = await service.getCharacteristic(CHR_DATA);
                 charCtrl = await service.getCharacteristic(CHR_CTRL);
 
-                document.getElementById('status-text').innerText = 'CONNECTED';
-                document.getElementById('dot').classList.add('online');
-                document.getElementById('btnPower').disabled = false;
+                updateUIStatus(true);
                 
                 await charData.startNotifications();
                 charData.addEventListener('characteristicvaluechanged', handleData);
@@ -142,31 +180,92 @@
             }
         }
 
+        function onDisconnected() {
+            updateUIStatus(false);
+            console.log("Device disconnected");
+        }
+
+        function disconnect() {
+            if (device && device.gatt.connected) {
+                device.gatt.disconnect();
+            }
+        }
+
+        function updateUIStatus(connected) {
+            document.getElementById('status-text').innerText = connected ? 'CONNECTED' : 'OFFLINE';
+            document.getElementById('dot').className = connected ? 'status-dot online' : 'status-dot';
+            document.getElementById('btnPower').disabled = !connected;
+            document.getElementById('btnConnect').style.display = connected ? 'none' : 'block';
+            document.getElementById('btnDisconnect').style.display = connected ? 'block' : 'none';
+            if(!connected) {
+                document.getElementById('serial-id').innerText = 'SN: --------';
+            }
+        }
+
+        let authorizedSerials = [];
+        fetch('devices.json')
+            .then(r => r.json())
+            .then(data => authorizedSerials = data.authorized_serials)
+            .catch(e => console.log("No registry found"));
+
         function handleData(event) {
             const view = event.target.value;
-            // Buffer: [float V, float I, float P, uint8_t %]
+            // Packet: [float V, float I, float P, uint8_t %, uint8_t[3] mac, uint8_t sig]
             const v = view.getFloat32(0, true).toFixed(2);
             const i = (view.getFloat32(4, true) / 1000).toFixed(2);
             const p = (view.getFloat32(8, true) / 1000).toFixed(2);
             const pct = view.getUint8(12);
+            
+            // Security Verification
+            const m1 = view.getUint8(13);
+            const m2 = view.getUint8(14);
+            const m3 = view.getUint8(15);
+            const sig = view.getUint8(16);
+            const SECRET = 0xAC;
+
+            const isValid = ((m1 + m2 + m3) & 0xFF) ^ SECRET;
+            
+            let snDisplay = "";
+            let snRaw = "";
+            if (sig === isValid) {
+                const snSuffix = `${m1.toString(16).padStart(2,'0')}${m2.toString(16).padStart(2,'0')}${m3.toString(16).padStart(2,'0')}`.toUpperCase();
+                snRaw = `NX-${snSuffix}`;
+                
+                // Check Registry
+                if (authorizedSerials.includes(snRaw)) {
+                    snDisplay = `✅ VERIFIED: ${snRaw}`;
+                    document.getElementById('serial-id').style.color = 'var(--accent)';
+                } else {
+                    snDisplay = `⚠️ UNREGISTERED: ${snRaw}`;
+                    document.getElementById('serial-id').style.color = '#eab308';
+                }
+            } else {
+                snDisplay = "🚨 FAKE HARDWARE";
+                document.getElementById('serial-id').style.color = 'var(--danger)';
+            }
 
             document.getElementById('volts').innerText = v + ' V';
             document.getElementById('amps').innerText = i + ' A';
             document.getElementById('watts').innerText = p + ' W';
             document.getElementById('pct').innerHTML = pct + '<span class="pct-unit">%</span>';
+            document.getElementById('serial-id').innerText = snDisplay;
         }
 
         async function togglePower() {
             isPowerOn = !isPowerOn;
             const val = new Uint8Array([isPowerOn ? 1 : 0]);
-            await charCtrl.writeValue(val);
-            
-            const btn = document.getElementById('btnPower');
-            btn.innerText = isPowerOn ? 'POWER ON' : 'POWER OFF';
-            btn.classList.toggle('off', !isPowerOn);
+            try {
+                await charCtrl.writeValue(val);
+                const btn = document.getElementById('btnPower');
+                btn.innerText = isPowerOn ? 'POWER ON' : 'POWER OFF';
+                btn.classList.toggle('off', !isPowerOn);
+            } catch (err) {
+                console.error("Toggle failed", err);
+            }
         }
 
         document.getElementById('btnConnect').onclick = connect;
+        document.getElementById('btnDisconnect').onclick = disconnect;
         document.getElementById('btnPower').onclick = togglePower;
 
     </script>

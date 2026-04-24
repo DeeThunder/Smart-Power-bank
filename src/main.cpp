@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "esp_mac.h"
 #include "nvs_flash.h"
 
 #define CONTROL_GPIO GPIO_NUM_10
@@ -67,13 +68,18 @@ extern "C" void app_main() {
     nexusBle.setToggleCallback(onBleToggle);
 
     // --- Nexus Power Splash Screen ---
+    uint8_t m[6];
+    esp_read_mac(m, ESP_MAC_BT);
+    uint8_t sig = (m[3] + m[4] + m[5]) ^ 0xAC;
+    
     printf("\n==========================================\n");
     printf("       NEXUS POWER - SMART SYSTEM         \n");
     printf("==========================================\n");
     printf(" STATUS:   BLE Advertising Active         \n");
     printf(" DEVICE:   Nexus Power                    \n");
+    printf(" SERIAL:   NX-%02X%02X%02X                 \n", m[3], m[4], m[5]);
+    printf(" REG_KEY:  %02X%02X%02X%02X               \n", m[3], m[4], m[5], sig);
     printf(" DASHBOARD: https://deethunder.github.io/Smart-Power-bank/ \n");
-    printf(" BATTERY:  12.6V System (3S Li-ion)       \n");
     printf("==========================================\n\n");
     fflush(stdout);
 

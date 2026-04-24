@@ -1,5 +1,6 @@
 #include "NexusBLE.hpp"
 #include "esp_log.h"
+#include "esp_mac.h"
 
 static const char* TAG = "NexusBLE";
 static NexusBLE* s_instance = nullptr;
@@ -40,16 +41,28 @@ void NexusBLE::setToggleCallback(ToggleCallback cb) {
     m_toggleCb = cb;
 }
 
+// Secret key for authenticity (only known to your firmware and software)
+#define NEXUS_SECRET_BYTE 0xAC 
+
 void NexusBLE::updatePowerData(float voltage, float current, float power, uint8_t batteryPct) {
     if (m_pServer->getConnectedCount() == 0) return;
 
-    uint8_t packet[13];
+    uint8_t mac[6];
+    esp_read_mac(mac, ESP_MAC_BT);
+
+    uint8_t packet[17]; // Expanded for signature
     memcpy(packet, &voltage, 4);
     memcpy(packet + 4, &current, 4);
     memcpy(packet + 8, &power, 4);
     packet[12] = batteryPct;
+    packet[13] = mac[3];
+    packet[14] = mac[4];
+    packet[15] = mac[5];
+    
+    // Generate Security Signature: (MAC bytes sum) XOR Secret Key
+    packet[16] = (mac[3] + mac[4] + mac[5]) ^ NEXUS_SECRET_BYTE;
 
-    m_pDataChar->setValue(packet, 13);
+    m_pDataChar->setValue(packet, 17);
     m_pDataChar->notify();
 }
 
