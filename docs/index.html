@@ -118,7 +118,7 @@
 
     <div class="phone-mockup">
         <header id="header-logo" onclick="handleLogoClick()">
-            <div class="eyebrow">Project Nexus</div>
+            <div class="eyebrow">Powered by Deethunder Nexus</div>
             <div class="title">NEXUS POWER</div>
         </header>
 
@@ -137,7 +137,7 @@
         </div>
 
         <button class="btn-toggle off" id="btnPower" disabled>POWER OFF</button>
-        <button class="btn-connect" id="btnConnect">Initialize System</button>
+        <button class="btn-connect" id="btnConnect">Connect to Device</button>
     </div>
 
     <!-- Developer Settings Sidebar -->
@@ -226,7 +226,7 @@
         function onDisconnected() { updateUIStatus(false); }
 
         function updateUIStatus(connected) {
-            document.getElementById('status-text').innerText = connected ? 'SYSTEM ONLINE' : 'OFFLINE';
+            document.getElementById('status-text').innerText = connected ? 'CONNECTED' : 'OFFLINE';
             document.getElementById('dot').className = connected ? 'status-dot online' : 'status-dot';
             document.getElementById('btnPower').disabled = !connected;
             document.getElementById('btnConnect').style.display = connected ? 'none' : 'block';
