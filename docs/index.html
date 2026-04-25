@@ -75,12 +75,24 @@
             letter-spacing: 1px;
             cursor: pointer;
             margin-top: 20px;
-            transition: all 0.2s;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-toggle:not(.off) {
+            animation: pulse-glow 2s infinite;
         }
         .btn-toggle.off { background: #1f262d; color: var(--text-dim); }
         .btn-toggle:disabled { opacity: 0.3; cursor: not-allowed; }
 
-        .btn-connect { margin-top: 20px; background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 12px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(0, 255, 136, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+        }
+
+        .btn-connect { margin-top: 20px; background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 12px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 600; text-transform: uppercase; transition: 0.2s; }
+        .btn-connect:hover { background: var(--accent); color: #000; }
 
         /* Sidebar Settings */
         .sidebar {
@@ -129,6 +141,9 @@
 
         <div class="battery-card">
             <div class="pct" id="pct">--<span class="pct-unit">%</span></div>
+            <div id="alert-banner" style="display: none; background: rgba(239, 68, 68, 0.2); color: var(--danger); font-size: 10px; padding: 10px; border-radius: 10px; margin-top: 15px; font-weight: 800; border: 1px solid var(--danger); text-transform: uppercase; letter-spacing: 1px;">
+                ⚠️ CRITICAL BATTERY: OUTPUT DISABLED
+            </div>
             <div class="metrics">
                 <div class="metric-item"><span class="m-val" id="volts">-- V</span><span class="m-lbl">Voltage</span></div>
                 <div class="metric-item"><span class="m-val" id="amps">-- A</span><span class="m-lbl">Current</span></div>
@@ -264,6 +279,22 @@
                     document.getElementById('dev-status').innerText = "REGISTERED ASSET";
                     document.getElementById('dev-status').style.background = "rgba(0, 255, 136, 0.1)";
                     document.getElementById('dev-status').style.color = "var(--accent)";
+                    
+                    // Sync Power State with Hardware
+                    const hwPowerOn = view.getUint8(17) === 1;
+                    if (isPowerOn !== hwPowerOn) {
+                        isPowerOn = hwPowerOn;
+                        updatePowerButtonUI();
+                    }
+
+                    // Check System Status (Byte 18)
+                    const status = view.getUint8(18);
+                    const alertBanner = document.getElementById('alert-banner');
+                    if (status === 1) {
+                        alertBanner.style.display = 'block';
+                    } else {
+                        alertBanner.style.display = 'none';
+                    }
                 } else {
                     // FORCE KILL: Turn off power before disconnecting
                     charCtrl.writeValue(new Uint8Array([0])).then(() => {
@@ -283,15 +314,33 @@
             document.getElementById('amps').innerText = i + ' A';
             document.getElementById('watts').innerText = p + ' W';
             document.getElementById('pct').innerHTML = pct + '<span class="pct-unit">%</span>';
+            
+            // Color coding for battery safety
+            const pctEl = document.getElementById('pct');
+            if (pct < 20) pctEl.style.color = 'var(--danger)';
+            else if (pct < 50) pctEl.style.color = '#f59e0b'; // Amber
+            else pctEl.style.color = 'var(--text)';
+        }
+
+        function updatePowerButtonUI() {
+            const btn = document.getElementById('btnPower');
+            btn.innerText = isPowerOn ? 'SYSTEM ACTIVE' : 'SYSTEM STANDBY';
+            btn.classList.toggle('off', !isPowerOn);
+            btn.style.boxShadow = isPowerOn ? '0 0 20px rgba(0, 255, 136, 0.2)' : 'none';
         }
 
         async function togglePower() {
-            isPowerOn = !isPowerOn;
-            const val = new Uint8Array([isPowerOn ? 1 : 0]);
-            await charCtrl.writeValue(val);
-            const btn = document.getElementById('btnPower');
-            btn.innerText = isPowerOn ? 'POWER ON' : 'POWER OFF';
-            btn.classList.toggle('off', !isPowerOn);
+            const targetState = !isPowerOn;
+            const val = new Uint8Array([targetState ? 1 : 0]);
+            try {
+                await charCtrl.writeValue(val);
+                // We'll let the next notification sync the UI for "truth"
+                // but for snappy feel, we can update locally too
+                isPowerOn = targetState;
+                updatePowerButtonUI();
+            } catch (e) {
+                console.error("Failed to toggle power", e);
+            }
         }
 
         document.getElementById('btnConnect').onclick = connect;

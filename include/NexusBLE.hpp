@@ -12,7 +12,7 @@ class NexusBLE {
 public:
     NexusBLE();
     void init(const std::string& deviceName);
-    void updatePowerData(float voltage, float current, float power, uint8_t batteryPct);
+    void updatePowerData(float voltage, float current, float power, uint8_t batteryPct, bool isPowerOn, uint8_t statusCode);
 
     using ToggleCallback = void (*)(bool on);
     void setToggleCallback(ToggleCallback cb);

@@ -12,7 +12,7 @@
 
 // Battery Calibration (3S Li-ion)
 #define BATT_MAX_V 12.6f
-#define BATT_MIN_V 9.0f
+#define BATT_MIN_V 10.0f
 
 static PowerController powerCtrl(CONTROL_GPIO);
 static Ina219Sensor ina219(4, 5);
@@ -30,15 +30,19 @@ uint8_t calculateBatteryPct(float voltage) {
 /**
  * @brief Callback for BLE toggle command
  */
+#define BATT_CUTOFF_PCT 10
+
+static uint8_t systemStatus = 0; // 0: OK, 1: LOW_BATT_SHUTDOWN
+
 void onBleToggle(bool on) {
     ESP_LOGI("MAIN", "BLE Command: Turn Power %s", on ? "ON" : "OFF");
     powerCtrl.setPower(on);
+    if (on) systemStatus = 0; // Reset status if user manually overrides
 }
 
 extern "C" void app_main() {
     // Immediate log to see if we reach app_main
     printf("\n\n[SYSTEM] BOOT START...\n");
-    vTaskDelay(pdMS_TO_TICKS(2000));
 
     // 1. Initialize NVS (required for BLE)
     esp_err_t ret = nvs_flash_init();
@@ -74,21 +78,21 @@ extern "C" void app_main() {
     printf(" DASHBOARD: https://deethunder.github.io/Smart-Power-bank/ \n");
     printf("==========================================\n\n");
     fflush(stdout);
-
     while (true) {
         float v = ina219.getBusVoltage_V();
         float i = ina219.getCurrent_mA();
         float p = ina219.getPower_mW();
         uint8_t pct = calculateBatteryPct(v);
 
-        // Notify BLE Dashboard
-        nexusBle.updatePowerData(v, i, p, pct);
-
-        // Safety Cutoff
-        if (v < BATT_MIN_V && powerCtrl.isOn()) {
-            ESP_LOGW("MAIN", "Critical Battery! Shutting down.");
+        // Safety Cutoff (Percentage Based)
+        if (pct <= BATT_CUTOFF_PCT && powerCtrl.isOn()) {
+            ESP_LOGW("MAIN", "Battery at %d%%! Protecting cells...", pct);
             powerCtrl.setPower(false);
+            systemStatus = 1; // Mark as Low Battery Shutdown
         }
+
+        // Notify BLE Dashboard
+        nexusBle.updatePowerData(v, i, p, pct, powerCtrl.isOn(), systemStatus);
 
         vTaskDelay(pdMS_TO_TICKS(READ_INTERVAL_MS));
     }

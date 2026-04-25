@@ -10,15 +10,7 @@ PowerController::PowerController(gpio_num_t gpio_num)
 #include "nvs.h"
 
 void PowerController::init() {
-    gpio_config_t io_conf = {};
-    io_conf.intr_type = GPIO_INTR_DISABLE;
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = (1ULL << m_gpio_num);
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-    gpio_config(&io_conf);
-    
-    // Load last state from NVS
+    // Load last state from NVS BEFORE configuring GPIO
     nvs_handle_t handle;
     if (nvs_open("storage", NVS_READWRITE, &handle) == ESP_OK) {
         uint8_t state = 0;
@@ -28,14 +20,24 @@ void PowerController::init() {
         }
         nvs_close(handle);
     }
+
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = (1ULL << m_gpio_num);
+    // Since it's high level logic, pull down to keep it OFF by default if not driven
+    io_conf.pull_down_en = GPIO_PULLDOWN_ENABLE;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    gpio_config(&io_conf);
     
-    // Apply the restored or default state
+    // Apply the restored or default state immediately
     setPower(m_is_on);
 }
 
 void PowerController::setPower(bool on) {
     m_is_on = on;
-    gpio_set_level(m_gpio_num, on ? 0 : 1);
+    // High level logic: 1 = ON, 0 = OFF
+    gpio_set_level(m_gpio_num, on ? 1 : 0);
     
     // Save to NVS
     nvs_handle_t handle;
