@@ -50,14 +50,6 @@ extern "C" void app_main() {
 
     ESP_LOGI("MAIN", "Initializing Hardware...");
     powerCtrl.init();
-    
-    // --- Physical Hardware Test ---
-    ESP_LOGI("MAIN", "Testing Hardware Toggle (ON)...");
-    powerCtrl.setPower(true);
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    ESP_LOGI("MAIN", "Testing Hardware Toggle (OFF)...");
-    powerCtrl.setPower(false);
-    // ------------------------------
 
     if (ina219.init() != ESP_OK) {
         ESP_LOGE("MAIN", "INA219 Init Failed!");
